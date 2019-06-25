@@ -2,6 +2,7 @@
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using Shooter;
+using Microsoft.Xna.Framework.Input.Touch;
 
 namespace Shooter
 {
@@ -15,6 +16,21 @@ namespace Shooter
 
         // Represents the player
         Player player;
+
+        // Keyboard states used to determine key presses
+        KeyboardState currentKeyboardState;
+        KeyboardState previousKeyboardState;
+
+        // Gamepad states used to determine button presses
+        GamePadState currentGamePadState;
+        GamePadState previousGamePadState;
+
+        // Mouse states used to track Mouse button press
+        MouseState currentMouseState;
+        MouseState previousMouseState;
+
+        // A movement speed for the Player
+        float playerMoveSpeed;
         
         public Game1()
         {
@@ -34,6 +50,12 @@ namespace Shooter
 
             // Initialize the player class
             player = new Player();
+
+            // Set a constant Player move speed
+            playerMoveSpeed = 8.0f;
+
+            // Enable the FreeDrag gesture
+            TouchPanel.EnabledGestures = GestureType.FreeDrag;
 
             base.Initialize();
         }
@@ -75,7 +97,74 @@ namespace Shooter
 
             // TODO: Add your update logic here
 
+            // Save the previous state of the keyboard, game pad, and mouse so we can determine single key/button presses
+            previousGamePadState = currentGamePadState;
+            previousKeyboardState = currentKeyboardState;
+            previousMouseState = currentMouseState;
+
+            // Read the current state of the keyboard, gamepad, and mouse and store it
+            currentKeyboardState = Keyboard.GetState();
+            currentGamePadState = GamePad.GetState(PlayerIndex.One);
+            currentMouseState = Mouse.GetState();
+
+            // Update the player
+            UpdatePlayer(gameTime);
+
             base.Update(gameTime);
+        }
+
+        private void UpdatePlayer(GameTime gameTime)
+        {
+            // Windows 8 Touch Gestures for MonoGame
+            while (TouchPanel.IsGestureAvailable)
+            {
+                GestureSample gesture = TouchPanel.ReadGesture();
+
+                if (gesture.GestureType == GestureType.FreeDrag)
+                {
+                    player.Position += gesture.Delta;
+                }
+            }
+
+            // Get Mouse State then Capture the Button type and Respon Button Press
+            Vector2 mousePosition = new Vector2(currentMouseState.X, currentMouseState.Y);
+
+            if (currentMouseState.LeftButton == ButtonState.Pressed)
+            {
+                Vector2 posDelta = mousePosition - player.Position;
+                posDelta.Normalize();
+                posDelta = posDelta * playerMoveSpeed;
+                player.Position = player.Position + posDelta;
+            }
+
+            // Get Thumbstick Controls
+            player.Position.X += currentGamePadState.ThumbSticks.Left.X * playerMoveSpeed;
+            player.Position.Y += currentGamePadState.ThumbSticks.Left.Y * playerMoveSpeed;
+
+            // Use the Keyboard / Dpad
+            if (currentKeyboardState.IsKeyDown(Keys.Left) || currentGamePadState.DPad.Left == ButtonState.Pressed)
+            {
+                player.Position.X -= playerMoveSpeed;
+            }
+
+            if (currentKeyboardState.IsKeyDown(Keys.Right) || currentGamePadState.DPad.Right == ButtonState.Pressed)
+            {
+                player.Position.X += playerMoveSpeed;
+            }
+
+            if (currentKeyboardState.IsKeyDown(Keys.Up) || currentGamePadState.DPad.Up == ButtonState.Pressed)
+            {
+                player.Position.Y -= playerMoveSpeed;
+            }
+
+            if (currentKeyboardState.IsKeyDown(Keys.Down) || currentGamePadState.DPad.Down == ButtonState.Pressed)
+            {
+                player.Position.Y += playerMoveSpeed;
+            }
+
+            // Make sure that the Player does not go out of bounds
+            player.Position.X = MathHelper.Clamp(player.Position.X, 0, GraphicsDevice.Viewport.Width - player.Width);
+            player.Position.Y = MathHelper.Clamp(player.Position.Y, 0, GraphicsDevice.Viewport.Height - player.Height);
         }
 
         /// <summary>
