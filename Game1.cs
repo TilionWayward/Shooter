@@ -31,7 +31,16 @@ namespace Shooter
 
         // A movement speed for the Player
         float playerMoveSpeed;
-        
+
+        // Image used to display the static background
+        Texture2D mainBackground;
+        Rectangle rectBackground;
+        float scale = 1f;
+
+        // The moving parts of the parallaxing backgrounds
+        ParallaxingBackground bgLayer1;
+        ParallaxingBackground bgLayer2;
+
         public Game1()
         {
             graphics = new GraphicsDeviceManager(this);
@@ -50,6 +59,11 @@ namespace Shooter
 
             // Initialize the player class
             player = new Player();
+
+            // Background
+            rectBackground = new Rectangle(0, 0, GraphicsDevice.Viewport.Width, GraphicsDevice.Viewport.Height);
+            bgLayer1 = new ParallaxingBackground();
+            bgLayer2 = new ParallaxingBackground();
 
             // Set a constant Player move speed
             playerMoveSpeed = 8.0f;
@@ -72,8 +86,18 @@ namespace Shooter
             // TODO: use this.Content to load your game content here
 
             // Load the player resources
+            Animation playerAnimation = new Animation();
+            Texture2D playerTexture = Content.Load<Texture2D>("PlayerShip");
+            playerAnimation.Initialize(playerTexture, Vector2.Zero, 32, 32, 8, 30, Color.White, 1f, true);
+
             Vector2 playerPosition = new Vector2(GraphicsDevice.Viewport.TitleSafeArea.X, GraphicsDevice.Viewport.TitleSafeArea.Y + GraphicsDevice.Viewport.TitleSafeArea.Height / 2);
-            player.Initialize(Content.Load<Texture2D>("PlayerShip"), playerPosition);
+            player.Initialize(playerAnimation, playerPosition);
+
+            // Load the parallaxing background
+            bgLayer1.Initialize(Content, "starLayer", GraphicsDevice.Viewport.Width, GraphicsDevice.Viewport.Height, -1);
+            bgLayer2.Initialize(Content, "planetLayer", GraphicsDevice.Viewport.Width, GraphicsDevice.Viewport.Height, -1);
+
+            mainBackground = Content.Load<Texture2D>("mainbackground");
         }
 
         /// <summary>
@@ -110,11 +134,16 @@ namespace Shooter
             // Update the player
             UpdatePlayer(gameTime);
 
+            // Update the parallaxing background
+            bgLayer1.Update(gameTime);
+            bgLayer2.Update(gameTime);
+
             base.Update(gameTime);
         }
 
         private void UpdatePlayer(GameTime gameTime)
         {
+            player.Update(gameTime);
             // Windows 8 Touch Gestures for MonoGame
             while (TouchPanel.IsGestureAvailable)
             {
@@ -163,8 +192,8 @@ namespace Shooter
             }
 
             // Make sure that the Player does not go out of bounds
-            player.Position.X = MathHelper.Clamp(player.Position.X, 0, GraphicsDevice.Viewport.Width - player.Width);
-            player.Position.Y = MathHelper.Clamp(player.Position.Y, 0, GraphicsDevice.Viewport.Height - player.Height);
+            player.Position.X = MathHelper.Clamp(player.Position.X, player.Width * player.PlayerAnimation.scale / 2, GraphicsDevice.Viewport.Width - player.Width * player.PlayerAnimation.scale / 2);
+            player.Position.Y = MathHelper.Clamp(player.Position.Y, player.Height * player.PlayerAnimation.scale / 2, GraphicsDevice.Viewport.Height - player.Height * player.PlayerAnimation.scale / 2);
         }
 
         /// <summary>
@@ -179,6 +208,13 @@ namespace Shooter
 
             // Start drawing
             spriteBatch.Begin();
+
+            // Draw the Main Background Texture
+            spriteBatch.Draw(mainBackground, rectBackground, Color.White);
+
+            // Draw the moving background
+            bgLayer1.Draw(spriteBatch);
+            bgLayer2.Draw(spriteBatch);
 
             // Draw the player
             player.Draw(spriteBatch);

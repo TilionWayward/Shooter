@@ -11,7 +11,7 @@ namespace Shooter
         Texture2D spriteStrip;
 
         // The scale used to display the sprite strip
-        float scale;
+        public float scale;
 
         // The time since we last updated the frame
         int elapsedTime;
